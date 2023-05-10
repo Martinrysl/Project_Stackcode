@@ -1,0 +1,44 @@
+{% import "bootstrap/wtf.html" as wtf %}
+{% include "header.html" %}
+
+  <!-- Page Header -->
+  <header class="masthead">
+    <div class="overlay"></div>
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-8 col-md-10 mx-auto">
+          <div class="site-heading">
+            <h1>U S E R S L I S T</h1>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <div class="container">
+
+    <div class="row">
+      <div class="col-lg-8 col-md-10 mx-auto">
+        {% for user in users.items %}
+        <p>{{ user.id }} - {{ user.name }} - {{ user.email }} - {{ user.created_at }}</p>
+        {% endfor %}
+
+        {% if users.has_prev %}
+          <a href="{{ url_for('get_all_users', page=users.prev_num) }}">Anterior</a>
+        {% endif %}
+
+        {% if users.has_next %}
+          <a href="{{ url_for('get_all_users', page=users.next_num) }}">Siguiente</a>
+        {% endif %}
+
+
+        <!-- New Post -->
+
+      </div>
+    </div>
+  </div>
+  <hr>
+
+{% include "footer.html" %}

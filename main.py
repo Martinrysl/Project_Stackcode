@@ -1,9 +1,9 @@
 from flask import Flask, render_template, redirect, url_for, flash, request, abort, jsonify
-from flask_sqlalchemy import SQLAlchemy
+from flask_sqlalchemy import SQLAlchemy, Pagination
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.orm import relationship
 from flask_login import UserMixin, login_user, LoginManager, login_required, current_user, logout_user
-from forms import Login, AddUser
+from forms import Login, AddUser, SearchUser
 from flask_bootstrap import Bootstrap
 import werkzeug.security
 from functools import wraps
@@ -27,6 +27,16 @@ class Database(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    def to_dict(self):
+        # Method 1.
+        dictionary = {}
+        # Loop through each column in the data record
+        for column in self.__table__.columns:
+            # Create a new dictionary entry;
+            # where the key is the name of the column
+            # and the value is the value of the column
+            dictionary[column.name] = getattr(self, column.name)
+        return dictionary
 
 @app.route('/')
 def index():
@@ -78,6 +88,74 @@ def login():
             return "User logged Successfully"
 
     return render_template('login.html', form=form)
+
+
+@app.route('/userslist', methods=['GET', 'POST'])
+def get_all_users():
+
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+    users = Database.query.order_by(Database.created_at.asc()).paginate(page=page, per_page=per_page)
+
+    return render_template("users.html", users=users)
+
+
+@app.route('/search', methods=['GET', 'POST'])
+def search_users():
+    query = request.args.get('query')
+    if not query:
+        return jsonify(error='No query specified')
+
+    users = Database.query.filter(
+        (Database.name.ilike(f'%{query}%')) | (Database.email.ilike(f'%{query}%'))
+    ).all()
+
+    if not users:
+        return jsonify(error='No matching users found')
+
+    results = [{'id': user.id, 'name': user.name, 'email': user.email} for user in users]
+    return jsonify(results=results)
+
+
+@app.route('/read', methods=['GET', 'POST'])
+def search_user_id():
+    query = request.args.get('id')
+    if not query:
+        return jsonify(error='No query specified')
+
+    users = Database.query.filter(
+        (Database.id.ilike(f'%{query}%')) | (Database.id.ilike(f'%{query}%'))
+    ).all()
+
+    if not users:
+        return jsonify(error='No matching users found')
+
+    results = [{'id': user.id, 'name': user.name, 'email': user.email} for user in users]
+    return jsonify(results=results)
+
+
+@app.route("/update-username/<int:user_id>", methods=["PATCH"])
+def patch_name(user_id):
+    new_name = request.args.get("new_name")
+    user = db.session.query(Database).get(user_id)
+    if user:
+        user.name = new_name
+        db.session.commit()
+        return jsonify(response={"success": "Successfully updated the name."})
+    else:
+        return jsonify(error={"Not Found": "Sorry a User with that id was not found in the database."})
+
+
+@app.route("/update-email/<int:user_id>", methods=["PATCH"])
+def patch_email(user_id):
+    new_email = request.args.get("new_email")
+    user = db.session.query(Database).get(user_id)
+    if user:
+        user.email = new_email
+        db.session.commit()
+        return jsonify(response={"success": "Successfully updated the email."})
+    else:
+        return jsonify(error={"Not Found": "Sorry a User with that id was not found in the database."})
 
 
 if __name__ == "__main__":

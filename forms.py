@@ -17,3 +17,9 @@ class AddUser(FlaskForm):
                                                      Length(max=50, min=8,
                                                             message='Password must have at least 8 characters')])
     submit = SubmitField('Add')
+
+
+class SearchUser(FlaskForm):
+    name = StringField('Username', validators=[DataRequired()])
+    email = EmailField('Email', validators=[DataRequired(), Email(granular_message=True, check_deliverability=True)])
+    submit = SubmitField('Search')
