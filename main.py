@@ -44,7 +44,7 @@ def index():
     return' Welcome'
 
 
-# Adding new user by POSTMAN
+# Adding new user in JSON by POSTMAN
 @app.route("/add", methods=["POST"])
 def add():
     new_user = Database(
