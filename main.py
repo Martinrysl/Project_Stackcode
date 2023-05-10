@@ -38,11 +38,26 @@ class Database(db.Model):
             dictionary[column.name] = getattr(self, column.name)
         return dictionary
 
+
 @app.route('/')
 def index():
     return' Welcome'
 
 
+# Adding new user by POSTMAN
+@app.route("/add", methods=["POST"])
+def add():
+    new_user = Database(
+        name=request.json.get('name'),
+        email=request.json.get('email'),
+        password=request.json.get('password'),
+    )
+    db.session.add(new_user)
+    db.session.commit()
+    return jsonify(response={"success": "Successfully added the new user."})
+
+
+# Adding new User by HTML
 @app.route('/adduser', methods=['GET', 'POST'])
 def register():
     form = AddUser()
