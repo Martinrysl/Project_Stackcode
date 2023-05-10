@@ -28,7 +28,6 @@ class Database(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     def to_dict(self):
-        # Method 1.
         dictionary = {}
         # Loop through each column in the data record
         for column in self.__table__.columns:
@@ -40,8 +39,8 @@ class Database(db.Model):
 
 
 @app.route('/')
-def index():
-    return' Welcome'
+def home():
+    return render_template('index.html')
 
 
 # Adding new user in JSON by POSTMAN
