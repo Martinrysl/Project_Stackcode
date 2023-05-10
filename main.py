@@ -203,13 +203,14 @@ def patch_email(user_id):
 
 
 # Eliminar un usuario a través de su ID.
-@app.route("/delete_user/<int:id>", methods=["DELETE"])
+@app.route("/delete_user/<int:user_id>", methods=["DELETE"])
 def delete(user_id):
-    user = Database.query.get(id)
+
+    user = db.session.query(Database).get(user_id)
     if user:
         db.session.delete(user)
         db.session.commit()
-        return jsonify(response={"success": "Successfully deleted the cafe from the database."}), 200
+        return jsonify(response={"success": "Successfully deleted the User from the database."}), 200
     else:
         return jsonify(error={"Not Found": "Sorry a User with that id was not found in the database."}), 404
 
