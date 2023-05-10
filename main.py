@@ -6,9 +6,10 @@ from flask_login import UserMixin, login_user, LoginManager, login_required, cur
 from forms import Login, AddUser, SearchUser
 from flask_bootstrap import Bootstrap
 import werkzeug.security
+from flask_bcrypt import Bcrypt
 from functools import wraps
 import os
-from datetime import datetime
+import datetime
 
 
 app = Flask(__name__)
@@ -17,25 +18,28 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:oligopolio2@localhost/stac
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 Bootstrap(app)
 db = SQLAlchemy(app)
+bcrypt = Bcrypt(app)
+login_manager = LoginManager()
+login_manager.init_app(app)
 
 
-class Database(db.Model):
+class Database(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(80))
-    email = db.Column(db.String(120), unique=True)
-    password = db.Column(db.String(120))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    name = db.Column(db.String(80), nullable=False)
+    email = db.Column(db.String(120), nullable=False, unique=True)
+    password = db.Column(db.String(250), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.datetime.now, onupdate=datetime.datetime.now)
 
-    def to_dict(self):
-        dictionary = {}
-        # Loop through each column in the data record
-        for column in self.__table__.columns:
-            # Create a new dictionary entry;
-            # where the key is the name of the column
-            # and the value is the value of the column
-            dictionary[column.name] = getattr(self, column.name)
-        return dictionary
+
+@login_manager.user_loader
+def load_user(user_id):
+    return Database.query.get(int(user_id))
+
+
+@app.errorhandler(403)
+def page_not_found(e):
+    return render_template('403.html'), 403
 
 
 @app.route('/')
@@ -46,10 +50,11 @@ def home():
 # Adding new user in JSON by POSTMAN
 @app.route("/add", methods=["POST"])
 def add():
+    password_hash = generate_password_hash(password=request.json.get('password'), method='pbkdf2:sha256', salt_length=8)
     new_user = Database(
         name=request.json.get('name'),
         email=request.json.get('email'),
-        password=request.json.get('password'),
+        password=password_hash,
     )
     db.session.add(new_user)
     db.session.commit()
@@ -68,19 +73,22 @@ def register():
             flash(message="You have already signed up with that email", category="danger")
             return redirect(url_for("login"))
 
+        password_hash = generate_password_hash(password=password, method='pbkdf2:sha256', salt_length=8)
+
         new_user = Database(
             name=name,
             email=email,
-            password=password
+            password=password_hash
         )
         db.session.add(new_user)
         db.session.commit()
-        login_user(new_user)
-        return "User Added Successfully"
+
+        return redirect(url_for("home"))
 
     return render_template("register.html", form=form)
 
 
+#Realizar un inicio de sesión mediante correo electrónico y contraseña y autenticar mediante servicio JWT.
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     form = Login()
@@ -88,22 +96,23 @@ def login():
         email = form.email.data
         password = form.password.data
         user_login = Database.query.filter_by(email=email).first()
-        password_login = Database.query.filter_by(password=password).first()
+
         if not user_login:
-            flash(message='That email does not exist, please register')
+            flash('Wrong email', 'error')
             return redirect(url_for("login"))
 
-        elif not password_login:
-            flash(message="Invalid password", category="danger")
-            print('Wrong Password')
+        elif not werkzeug.security.check_password_hash(pwhash=user_login.password, password=password):
+            flash('Wrong password', 'error')
+
             return redirect(url_for('login'))
         else:
-
+            flash('Your have logged in successfully', 'success')
             return "User logged Successfully"
 
     return render_template('login.html', form=form)
 
 
+# Mostrar 10 registros por página en la respuesta.
 @app.route('/userslist', methods=['GET', 'POST'])
 def get_all_users():
 
@@ -114,6 +123,7 @@ def get_all_users():
     return render_template("users.html", users=users)
 
 
+# Búsqueda de usuarios por nombre y correo.
 @app.route('/search', methods=['GET', 'POST'])
 def search_users():
     query = request.args.get('query')
@@ -131,6 +141,7 @@ def search_users():
     return jsonify(results=results)
 
 
+# Search User by ID
 @app.route('/read', methods=['GET', 'POST'])
 def search_user_id():
     query = request.args.get('id')
@@ -148,6 +159,7 @@ def search_user_id():
     return jsonify(results=results)
 
 
+# Actualizar un usuario a través de su ID.
 @app.route("/update-username/<int:user_id>", methods=["PATCH"])
 def patch_name(user_id):
     new_name = request.args.get("new_name")
@@ -160,6 +172,7 @@ def patch_name(user_id):
         return jsonify(error={"Not Found": "Sorry a User with that id was not found in the database."})
 
 
+# Actualizar un email de usuario a través de su ID.
 @app.route("/update-email/<int:user_id>", methods=["PATCH"])
 def patch_email(user_id):
     new_email = request.args.get("new_email")
@@ -172,6 +185,7 @@ def patch_email(user_id):
         return jsonify(error={"Not Found": "Sorry a User with that id was not found in the database."})
 
 
+# Eliminar un usuario a través de su ID.
 @app.route("/delete_user/<int:id>", methods=["DELETE"])
 def delete(user_id):
     user = Database.query.get(id)
@@ -183,7 +197,7 @@ def delete(user_id):
         return jsonify(error={"Not Found": "Sorry a User with that id was not found in the database."}), 404
 
 
-
 if __name__ == "__main__":
     app.run(debug=True, port=9090)
+
 

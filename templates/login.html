@@ -3,26 +3,23 @@
 {% extends "base.html" %}
 {% block content %}
 
-
-
 <div class="box">
     <h1>Login</h1>
-          {% with messages = get_flashed_messages() %}
-        {% if messages %}
-        {% for message in messages %}
-        <div class="alert alert-primary alert-dismissible" role="alert">
-          <strong>{{ message }}</strong>
-          <button type="button" class="btn-close" data-bs-dismiss="alert" arial-label="Close"></button>
-        </div>
 
-        {% endfor %}
-        {% endif %}
-        {% endwith %}
-  <form>
         {{ wtf.quick_form(form, novalidate=True, button_map={"submit": "primary"}) }}
 
+
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <ul class="flashes">
+      {% for category, message in messages %}
+        <li class="{{ category }}">{{ message }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+    {% endwith %}
         <a class="btn btn-primary float-left" href="/adduser">Register</a>
-    </form>
 </div>
 
 
