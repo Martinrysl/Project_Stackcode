@@ -158,6 +158,18 @@ def patch_email(user_id):
         return jsonify(error={"Not Found": "Sorry a User with that id was not found in the database."})
 
 
+@app.route("/delete_user/<int:id>", methods=["DELETE"])
+def delete(user_id):
+    user = Database.query.get(id)
+    if user:
+        db.session.delete(user)
+        db.session.commit()
+        return jsonify(response={"success": "Successfully deleted the cafe from the database."}), 200
+    else:
+        return jsonify(error={"Not Found": "Sorry a User with that id was not found in the database."}), 404
+
+
+
 if __name__ == "__main__":
     app.run(debug=True, port=9090)
 
