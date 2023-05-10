@@ -8,12 +8,13 @@ from flask_bootstrap import Bootstrap
 import werkzeug.security
 from flask_bcrypt import Bcrypt
 from functools import wraps
-import os
+from os import getenv
 import datetime
-
+from dotenv import load_dotenv
+from func_jwt import write_token, auth_token
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = '8BYkEfBA6O6donzWlSihBXox7C0sKR6b'
+app.config['SECRET_KEY'] = getenv("SECRET")
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:oligopolio2@localhost/stackcode_db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 Bootstrap(app)
@@ -87,8 +88,24 @@ def register():
 
     return render_template("register.html", form=form)
 
+# Realizar un inicio de sesión mediante correo electrónico y contraseña y autenticar mediante servicio JWT.
+@app.route('/loginapi', methods=['GET', 'POST'])
+def login_api():
+    email = request.json.get('email')
+    password = request.json.get('password')
+    user_login = Database.query.filter_by(email=email).first()
+    if not user_login:
+        flash('Wrong email', 'error')
+        return redirect(url_for("login"))
+    elif not werkzeug.security.check_password_hash(pwhash=user_login.password, password=password):
+        flash('Wrong password', 'error')
+        return redirect(url_for('login'))
+    else:
+        flash('Your have logged in successfully', 'success')
+        return write_token(data=request.get_json())
 
-#Realizar un inicio de sesión mediante correo electrónico y contraseña y autenticar mediante servicio JWT.
+
+#Realizar un inicio de sesión mediante correo electrónico y contraseña
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     form = Login()
@@ -197,7 +214,15 @@ def delete(user_id):
         return jsonify(error={"Not Found": "Sorry a User with that id was not found in the database."}), 404
 
 
+# Verificador de JWT
+@app.route("/verify", methods=['GET', 'POST'])
+def verify():
+    token = request.headers['Authorization'].split(" ")[1]
+    return auth_token(token, output=True)
+
+
 if __name__ == "__main__":
+    load_dotenv()
     app.run(debug=True, port=9090)
 
 
