@@ -17,12 +17,23 @@
           <a href="{{ url_for('get_all_users', page=users.prev_num) }}">Anterior</a>
         {% endif %}
 
+        {% for num in users.iter_pages(left_edge=1, left_current=1, right_current=2, right_edge=1) %}
+        {% if num %}
+        {% if users.page == num %}
+        <a href="{{ url_for('get_all_users', page=num) }}"><b>{{ num }}</b></a>
+        {% else %}
+        <a href="{{ url_for('get_all_users', page=num) }}">{{ num }}</a>
+        {% endif %}
+      {% else %}
+      <span class="ellipsis">&hellip;</span>
+      {% endif %}
+      {% endfor %}
+
         {% if users.has_next %}
           <a href="{{ url_for('get_all_users', page=users.next_num) }}">Siguiente</a>
-        {% endif %}
 
 
-        <!-- New Post -->
+
 
       </div>
     </div>

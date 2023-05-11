@@ -2,6 +2,8 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, PasswordField, EmailField
 from wtforms.validators import DataRequired, URL, Email, Length, ValidationError
 
+# Se crean los Forms para los HTML, Login, Agregar al Usuario
+
 
 class Login(FlaskForm):
     email = EmailField('Email', validators=[DataRequired(), Email(granular_message=True, check_deliverability=True)])
